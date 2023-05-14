@@ -16,15 +16,18 @@ class BodySkeleton: Entity {
         super.init()
         
         for jointName in ARSkeletonDefinition.defaultBody3D.jointNames {
+            let isLeftSide: Bool = jointName.contains("left")
             
-            let jointRadius: Float = 0.07
-            let jointColor: UIColor = .magenta
+            let jointRadius: Float = 0.05
+            let jointColor: UIColor = .green
             
-            let jointEntity = makeJoint(radius: jointRadius, color: jointColor)
+            let jointEntity = makeJoint(jointName: jointName, radius: jointRadius, color: jointColor, isLeftSide: isLeftSide)
             joints[jointName] = jointEntity
-            self.addChild(jointEntity)
+            
+            if let entity = jointEntity {
+                self.addChild(entity)
+            }
         }
-        
         self.updatePositionJoint(with: bodyAnchor)
     }
     
@@ -32,12 +35,44 @@ class BodySkeleton: Entity {
         fatalError("init() has not been implemented")
     }
     
-    func makeJoint(radius: Float, color: UIColor) -> Entity {
-        let mesh = MeshResource.generateSphere(radius: radius)
-        let material = SimpleMaterial(color: color, roughness: 0.8, isMetallic: true)
+    func makeJoint(jointName: String, radius: Float, color: UIColor, isLeftSide: Bool) -> Entity? {
+        
+        if jointName.contains("left_hand") || jointName.contains("right_hand") || jointName.contains("eye") || jointName.contains("nose") || jointName.contains("chin") || jointName.contains("jaw") || jointName.contains("neck") || jointName.contains("head") || jointName.contains("toes"){
+            return nil // Return nil to hide the hand joints
+        }
+        
+        var jointColor = color
+        
+        if isLeftSide {
+            jointColor = .blue
+        } else {
+            jointColor = .red
+        }
+        
+        var jointRadius = radius
+        
+        switch jointName {
+        case "left_hand_joint":
+            jointRadius = 0.02 // Custom radius for left_hand_joint
+        case "right_hand_joint":
+            jointRadius = 0.02 // Custom radius for right_hand_joint
+        //case _ where jointName.hasPrefix("spine") || jointName.hasPrefix("right_hand"):
+        //    jointRadius = 0.05
+        //    jointColor = .yellow
+        case "head_joint":
+            jointRadius = 0.1 // Custom radius for head_joint
+        default:
+            // Use the provided radius for other joints
+            break
+        }
+        
+        let mesh = MeshResource.generateSphere(radius: jointRadius)
+        let material = SimpleMaterial(color: jointColor, roughness: 0.8, isMetallic: true)
         let modelEntity = ModelEntity(mesh: mesh, materials: [material])
+        
         return modelEntity
     }
+
     
     func updatePositionJoint(with bodyAnchor: ARBodyAnchor){
         let rootPosition = simd_make_float3(bodyAnchor.transform.columns.3)
